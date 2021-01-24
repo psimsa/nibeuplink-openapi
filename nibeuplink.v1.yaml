@@ -1,0 +1,834 @@
+openapi: 3.0.0
+tags:
+  - name: nibe uplink
+info:
+  title: nibe-uplink
+  version: "1.0"
+  description: Nibe uplink
+  contact:
+    name: Pavel
+    email: pavel@simsa.cz
+    url: github.com/ofcoursedude
+  termsOfService: "https://github.com/ofcoursedude/nibeuplink-openapi/blob/main/README.md"
+  license:
+    name: MIT
+    url: "https://github.com/ofcoursedude/nibeuplink-openapi/blob/main/LICENSE"
+servers:
+  - url: "https://api.nibeuplink.com/api/v1"
+    description: Production
+paths:
+  /systems:
+    get:
+      summary: Get systems
+      tags: []
+      operationId: get-systems
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListOfSystem"
+              examples: {}
+      description: "List the user's connected systems. The results are paged, please use the URI parameters to specify paging options."
+      parameters:
+        - schema:
+            type: integer
+            default: 1
+          in: query
+          name: page
+          description: page number to get
+        - schema:
+            type: integer
+            default: 3
+          in: query
+          name: itemsPerPage
+          description: number of systems per page
+  /software:
+    get:
+      summary: Get software for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SoftwareInfo"
+              examples: {}
+      operationId: get-software
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: serialNumber
+          required: true
+          description: NibeSystem serial number
+      description: Get information about the current software release for a serial number
+    parameters: []
+  "/systems/{systemId}/status/system":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get status for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusIconItem"
+      operationId: get-system-status
+      description: Get the current system status. This function returns the overall system status. This includes which system components (e.g. additional heating and accessories) are currently running as well as what the system is currently producing (e.g. hot water and heating). For systems with only one system unit containing a compressor module the function also returns whether any compressors or pumps belonging to this system unit is currently running. For larger systems you need to check each individual system unit's status to get their compressor and pump status.
+  "/systems/{systemId}/status/systemUnit/{systemUnitId}":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+      - schema:
+          type: string
+          default: "0"
+        name: systemUnitId
+        in: path
+        required: true
+    get:
+      summary: Get status for unit in system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusIconItem"
+      operationId: get-system-unit-status
+      description: Get the current system unit status. This function returns the status of the compressors and pumps of the system unit specified.
+  "/systems/{systemId}":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get details of system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NibeSystem"
+      operationId: get-system
+      description: Get the information about a single connected system
+  "/systems/{systemId}/software":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get software info for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemSoftwareInfo"
+      operationId: get-system-software
+      description: Get information about the currently installed software version and whether and upgrade is available
+  "/systems/{systemId}/config":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get config for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductConfig"
+      operationId: get-system-config
+      description: "Get the configuration of the system, i.e. whether it can produce hot water, heating and so on."
+  "/systems/{systemId}/units":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get units for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SystemUnit"
+      operationId: get-system-units
+      description: 'Get all system units ("units") connected to system. A unit is a single entity in a system, i.e. a master, a slave or an outdoor unit. In case of a system without the ability for slaves or outdoor units this function will return only one unit, the master.'
+  "/systems/{systemId}/notifications":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get notifications for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedListOfNotification"
+      operationId: get-system-notifications
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - ALARM
+              - INFO_MESSAGE
+            default: ALARM
+          in: query
+          name: type
+          required: true
+        - schema:
+            type: boolean
+            default: "true"
+          in: query
+          name: active
+          required: true
+        - schema:
+            type: integer
+            default: "1"
+          in: query
+          name: page
+          required: true
+        - schema:
+            type: integer
+            default: "30"
+          in: query
+          name: itemsPerPage
+          required: true
+      description: Get notifications registered on system. Use the filtering and the built-in paging to specify which notifications to get.
+  "/systems/{systemId}/parameters":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get parameters for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Parameter"
+      operationId: get-system-parameters
+      description: Get current value and information about parameters.
+      parameters:
+        - schema:
+            type: array
+            items:
+              type: string
+          in: query
+          name: parameterIds
+          required: true
+          explode: true
+          style: form
+    put:
+      summary: Set the value of parameters
+      tags: []
+      operationId: put-system-parameters
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Queue"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetParameterModel"
+      description: Set the value of parameters. Please refer to the Parameters section of the documentation for available parameters to set.
+  "/systems/{systemId}/premium":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get subscription info for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+      operationId: get-system-premium
+      description: Get the current subscription status for system.
+  "/systems/{systemId}/serviceinfo/categories":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get categories for system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+      operationId: get-system-service-categories
+      description: Get the available categories for service info data on system.
+  "/systems/{systemId}/serviceinfo/categories/{categoryId}":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: categoryId
+        in: path
+        required: true
+    get:
+      summary: Get details for category in system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Parameter"
+      operationId: get-system-service-category
+      description: Get all parameters available in a specific service info category on system.
+  "/systems/{systemId}/smarthome/mode":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get smarthome parameters in system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmartHomeModeResult"
+      operationId: get-system-smarthome-mode
+      description: Returns the current smart home mode setting.
+    put:
+      summary: Update smarthome parameters in system
+      operationId: put-system-smarthome-mode
+      tags: []
+      responses:
+        "200":
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetSmartHomeModeModel"
+      description: Set the smart home mode of the system. Even though no change may have occured the smart home system needs to report the current smart home mode at least every 30 minutes to continue affecting the system.
+  "/systems/{systemId}/smarthome/thermostats":
+    parameters:
+      - schema:
+          type: string
+        name: systemId
+        in: path
+        required: true
+    get:
+      summary: Get smarthome thermostats in system
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Thermostat"
+      operationId: get-system-thermostats
+      description: Returns a list of the external thermostats currently affecting the system
+    post:
+      summary: Update smarthome thermostats in system
+      operationId: post-system-thermostats
+      tags: []
+      responses:
+        "200":
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetThermostatModel"
+      description: "Upload thermostat data to NIBE Uplink. Use the ExternalId parameter to identify which thermostat to update, if it does not already exist a thermostat with the supplied id will be created. Even though no change may have occured the thermostat needs to report its current status at least every 30 minutes to continue affecting the system."
+components:
+  securitySchemes:
+    oauth2sec:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://api.nibeuplink.com/oauth/authorize"
+          tokenUrl: "https://api.nibeuplink.com/oauth/token"
+          refreshUrl: "https://api.nibeuplink.com/oauth/token"
+          scopes:
+            READSYSTEM: Read system info
+            WRITESYSTEM: Perform system updates
+      description: ""
+    bearerSec:
+      type: http
+      scheme: bearer
+  schemas:
+    SetThermostatModel:
+      type: object
+      additionalProperties: false
+      properties:
+        externalId:
+          type: integer
+        name:
+          type: string
+        actualTemp:
+          type: integer
+        targetTemp:
+          type: integer
+        valvePosition:
+          type: integer
+        climateSystems:
+          type: array
+          items:
+            type: integer
+      title: SetThermostatModel
+    SetParameterModel:
+      type: object
+      additionalProperties: false
+      properties:
+        settings:
+          $ref: "#/components/schemas/Settings"
+      title: SetParameterModel
+    Settings:
+      type: object
+      additionalProperties: false
+      properties:
+        key:
+          type: string
+      title: Settings
+    SetSmartHomeModeModel:
+      type: object
+      additionalProperties: false
+      title: SmartHomeModeResult
+      properties:
+        mode:
+          $ref: "#/components/schemas/SmartHomeMode"
+    SmartHomeModeResult:
+      type: object
+      additionalProperties: false
+      title: SmartHomeModeResult
+      properties:
+        mode:
+          $ref: "#/components/schemas/SmartHomeMode"
+    Thermostat:
+      type: object
+      additionalProperties: false
+      properties:
+        smartHomeSystem:
+          $ref: "#/components/schemas/SmartHomeSystem"
+        name:
+          type: string
+        climateSystems:
+          type: array
+          items:
+            type: integer
+        currentTemperature:
+          $ref: "#/components/schemas/CurrentTemperature"
+        targetTemperature:
+          type: string
+      title: Thermostat
+    SmartHomeSystem:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+      title: SmartHomeSystem
+    PagedListOfSystem:
+      type: object
+      additionalProperties: false
+      title: PagedListOfSystem
+      properties:
+        page:
+          type: integer
+        itemsPerPage:
+          type: integer
+        numItems:
+          type: integer
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/NibeSystem"
+    NibeSystem:
+      type: object
+      additionalProperties: false
+      title: NibeSystem
+      properties:
+        systemId:
+          type: integer
+        name:
+          type: string
+        productName:
+          type: string
+        productImage:
+          $ref: "#/components/schemas/Image"
+        securityLevel:
+          $ref: "#/components/schemas/SecurityLevel"
+        serialNumber:
+          type: string
+        lastActivityDate:
+          type: string
+          format: date-time
+        connectionStatus:
+          type: string
+        address:
+          $ref: "#/components/schemas/Address"
+        hasAlarmed:
+          type: boolean
+    Address:
+      type: object
+      additionalProperties: false
+      title: Address
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        postalCode:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+        country:
+          type: string
+    Image:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        sizes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageSize"
+      title: Image
+    ImageSize:
+      type: object
+      additionalProperties: false
+      properties:
+        width:
+          type: integer
+        height:
+          type: integer
+        url:
+          $ref: "#/components/schemas/URL"
+      title: ImageSize
+    Comment:
+      type: object
+      additionalProperties: false
+      properties:
+        authorName:
+          type: string
+        authorAvatar:
+          $ref: "#/components/schemas/Image"
+        creationDate:
+          type: string
+          format: date-time
+        text:
+          $ref: "#/components/schemas/CurrentTemperature"
+      title: Comment
+    Info:
+      type: object
+      additionalProperties: false
+      title: Info
+      properties:
+        alarmNumber:
+          type: integer
+        type:
+          $ref: "#/components/schemas/NotificationType"
+        title:
+          type: string
+        description:
+          $ref: "#/components/schemas/CurrentTemperature"
+    Category:
+      type: object
+      additionalProperties: false
+      properties:
+        categoryId:
+          type: string
+        name:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Parameter"
+      title: Category
+    Parameter:
+      type: object
+      additionalProperties: false
+      properties:
+        parameterId:
+          type: integer
+        name:
+          type: string
+          format: integer
+        title:
+          type: string
+        designation:
+          type: string
+        unit:
+          type: string
+        displayValue:
+          type: string
+        rawValue:
+          type: integer
+      title: Parameter
+    Subscription:
+      type: object
+      additionalProperties: false
+      title: Subscription
+      properties:
+        type:
+          $ref: "#/components/schemas/PremiumType"
+        name:
+          type: string
+        expirationDate:
+          type: string
+          format: date-time
+        isExpiring:
+          type: boolean
+    PagedListOfNotification:
+      type: object
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+        itemsPerPage:
+          type: integer
+        numItems:
+          type: integer
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+      title: PagedListOfNotification
+    Notification:
+      type: object
+      additionalProperties: false
+      properties:
+        notificationId:
+          type: integer
+        systemUnitId:
+          type: integer
+        moduleName:
+          type: string
+        occuredAt:
+          type: string
+          format: date-time
+        stoppedAt:
+          type: string
+          format: date-time
+        wasReset:
+          type: boolean
+        resetPossible:
+          type: boolean
+        aidmodePossible:
+          type: boolean
+        info:
+          $ref: "#/components/schemas/Info"
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+      title: Notification
+    SystemUnit:
+      type: object
+      additionalProperties: false
+      properties:
+        systemUnitId:
+          type: integer
+        name:
+          type: string
+        shortName:
+          $ref: "#/components/schemas/CurrentTemperature"
+        product:
+          type: string
+        softwareVersion:
+          type: string
+      title: SystemUnit
+    ProductConfig:
+      type: object
+      additionalProperties: false
+      properties:
+        hasCooling:
+          type: boolean
+        hasHeating:
+          type: boolean
+        hasHotWater:
+          type: boolean
+        hasVentilation:
+          type: boolean
+      title: ProductConfig
+    SystemSoftwareInfo:
+      type: object
+      additionalProperties: false
+      title: SystemSoftwareInfo
+      properties:
+        current:
+          $ref: "#/components/schemas/SoftwareInfo"
+        upgrade:
+          $ref: "#/components/schemas/SoftwareInfo"
+    SoftwareInfo:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        version:
+          type: integer
+        release:
+          type: integer
+        releaseDate:
+          type: string
+          format: date-time
+      title: SoftwareInfo
+    StatusIconItem:
+      type: object
+      additionalProperties: false
+      properties:
+        image:
+          $ref: "#/components/schemas/Image"
+        inlineText:
+          type: string
+        title:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Parameter"
+      title: StatusIconItem
+    URL:
+      anyOf:
+        - $ref: "#/components/schemas/CurrentTemperature"
+        - type: string
+          format: uri
+      title: URL
+    CurrentTemperature:
+      type: string
+      title: CurrentTemperature
+    NotificationType:
+      type: string
+      title: NotificationType
+      enum:
+        - ALARM
+        - INFO_MESSAGE
+    Queue:
+      title: Queue
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/QueueStatus"
+        parameter:
+          $ref: "#/components/schemas/Parameter"
+    QueueStatus:
+      type: string
+      title: QueueStatus
+      enum:
+        - SENDING
+        - VERIFYING
+        - DONE
+        - TIMEOUT
+    PremiumType:
+      type: string
+      title: PremiumType
+      enum:
+        - NONE
+        - HISTORY
+        - MANAGE
+        - ORGANIZATION
+    SmartHomeMode:
+      type: string
+      title: SmartHomeMode
+      enum:
+        - DEFAULT_OPERATION
+        - AWAY_FROM_HOME
+        - VACATION
+    SecurityLevel:
+      type: string
+      title: SecurityLevel
+      enum:
+        - ADMIN
+        - SERVICE_USER
+        - MANAGER
+        - VIEWER
+        - UNKNOWN
+        - SERVICE_PARTNER
+  responses: {}
+security:
+  - bearerSec: []
